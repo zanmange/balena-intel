@@ -31,3 +31,22 @@ write_mbr() {
 IMAGE_POSTPROCESS_COMMAND_append = " write_mbr; "
 
 IMAGE_INSTALL_append = " efibootmgr"
+
+sign_grub () {
+    # Use the GPG key generated during GRUB build
+    export GNUPGHOME="${DEPLOY_DIR_IMAGE}/grub/gpghome"
+
+    # Silence warnings
+    chmod 0700 "${GNUPGHOME}"
+
+    # Sign kernel
+    gpg --batch --yes --detach-sign "${IMAGE_ROOTFS}/boot/${KERNEL_IMAGETYPE}"
+
+    # Sign grub.cfg
+    gpg --batch --yes --detach-sign "${IMAGE_ROOTFS}/${RESIN_BOOT_FS_LABEL}/EFI/BOOT/grub.cfg"
+
+    # Sign grub modules
+    find "${IMAGE_ROOTFS}/${RESIN_BOOT_FS_LABEL}/EFI/BOOT/x86_64-efi" -name "*.mod" -type f -exec gpg --batch --yes --detach-sign {} \;
+}
+
+ROOTFS_POSTPROCESS_COMMAND += " sign_grub ; "
